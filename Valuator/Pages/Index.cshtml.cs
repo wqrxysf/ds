@@ -24,6 +24,9 @@ public class IndexModel : PageModel
     {
         _logger.LogDebug(text);
 
+        if (string.IsNullOrEmpty(text))
+            return Redirect($"index");
+
         string id = Guid.NewGuid().ToString();
 
         string similarityKey = "SIMILARITY-" + id;
@@ -42,14 +45,9 @@ public class IndexModel : PageModel
 
     private double CalculateRank(string text)
     {
-        if (string.IsNullOrEmpty(text))
-            return 0;
 
         int alphabeticCount = text.Count(c =>
-            char.IsLetter(c) &&
-            (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' ||
-             c >= 'а' && c <= 'я' || c >= 'А' && c <= 'Я' ||
-             c == 'ё' || c == 'Ё'));
+            ( char.IsLetter(c)));
 
         return 1.0 - (double)alphabeticCount / text.Length;
     }
@@ -61,7 +59,7 @@ public class IndexModel : PageModel
         foreach (var key in keys)
         {
             var existingText = _redis.StringGet(key);
-            if (existingText == text && key != $"TEXT-{text}")
+            if (existingText == text)
             {
                 return 1.0;
             }

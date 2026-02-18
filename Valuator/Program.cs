@@ -7,7 +7,6 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
         builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
             var configuration = ConfigurationOptions.Parse("localhost:6379");
@@ -18,7 +17,6 @@ public class Program
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Error");

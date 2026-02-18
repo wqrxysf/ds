@@ -23,16 +23,21 @@ public class SummaryModel : PageModel
     public double Rank { get; set; }
     public double Similarity { get; set; }
 
-    public void OnGet(string id)
+    public IActionResult OnGet(string id)
     {
         _logger.LogDebug(id);
 
-        // проинициализировать свойства Rank и Similarity значениями из БД (Redis)
         string rankKey = "RANK-" + id;
         string similarityKey = "SIMILARITY-" + id;
 
         var rankValue = _redis.StringGet(rankKey);
+
         var similarityValue = _redis.StringGet(similarityKey);
+
+        if (string.IsNullOrEmpty(rankValue) || string.IsNullOrEmpty(similarityValue))
+        {
+            return RedirectToPage("Index");
+        }
 
         if (!string.IsNullOrEmpty(rankValue))
         {
@@ -43,5 +48,7 @@ public class SummaryModel : PageModel
         {
             Similarity = double.Parse(similarityValue);
         }
+
+        return Page();
     }
 }
