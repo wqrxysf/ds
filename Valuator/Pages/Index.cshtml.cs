@@ -8,6 +8,7 @@ public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
     private readonly IDatabase _redis;
+    public string ServerPort { get; set; } = "Unknown";
 
     public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer redis)
     {
@@ -17,7 +18,9 @@ public class IndexModel : PageModel
 
     public void OnGet()
     {
+        ServerPort = HttpContext.Connection.LocalPort.ToString();
 
+        _logger.LogInformation("������ �� �����: {Port}", ServerPort);
     }
 
     public IActionResult OnPost(string text)
@@ -30,15 +33,15 @@ public class IndexModel : PageModel
         string id = Guid.NewGuid().ToString();
 
         string similarityKey = "SIMILARITY-" + id;
-        double similarity = CalculateSimilarity(text);  // посчитать similarity
-        _redis.StringSet(similarityKey, similarity.ToString()); // сохранить в БД (Redis) по ключу similarityKey
+        double similarity = CalculateSimilarity(text);
+        _redis.StringSet(similarityKey, similarity.ToString());
 
         string textKey = "TEXT-" + id;
-        _redis.StringSet(textKey, text); // сохранить в БД (Redis) text по ключу textKey
+        _redis.StringSet(textKey, text);
 
         string rankKey = "RANK-" + id;
-        double rank = CalculateRank(text);  // посчитать rank
-        _redis.StringSet(rankKey, rank.ToString()); // сохранить в БД (Redis) по ключу rankKey
+        double rank = CalculateRank(text);
+        _redis.StringSet(rankKey, rank.ToString());
 
         return Redirect($"summary?id={id}");
     }

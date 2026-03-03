@@ -1,0 +1,11 @@
+2026/02/25 00:14:33 [emerg] 17632#15060: unknown directive "localhost:5001" in C:\nginx/conf/nginx.conf:17
+2026/02/25 00:16:49 [emerg] 7004#16500: unexpected end of file, expecting "}" in C:\nginx/conf/nginx.conf:42
+2026/02/25 00:18:30 [notice] 19028#3296: signal process started
+2026/02/25 00:21:09 [error] 16776#21328: *17 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET /summary?id=0621331a-3519-4b87-9d9a-55c1584dbb56 HTTP/1.1", upstream: "http://127.0.0.1:5001/summary?id=0621331a-3519-4b87-9d9a-55c1584dbb56", host: "localhost:8080", referrer: "http://localhost:8080/"
+2026/02/25 11:36:39 [notice] 18788#18768: signal process started
+2026/02/25 11:41:09 [notice] 10616#18964: signal process started
+2026/02/25 11:47:37 [notice] 14724#2796: signal process started
+2026/03/03 22:12:17 [error] 15136#22636: *4 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET /css/site.css?v=pAGv4ietcJNk_EwsQZ5BN9-K4MuNYS2a9wl4Jw-q9D0 HTTP/1.1", upstream: "http://127.0.0.1:5003/css/site.css?v=pAGv4ietcJNk_EwsQZ5BN9-K4MuNYS2a9wl4Jw-q9D0", host: "localhost:8080", referrer: "http://localhost:8080/"
+2026/03/03 22:12:17 [error] 15136#22636: *1 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET /lib/bootstrap/dist/js/bootstrap.bundle.min.js HTTP/1.1", upstream: "http://127.0.0.1:5003/lib/bootstrap/dist/js/bootstrap.bundle.min.js", host: "localhost:8080", referrer: "http://localhost:8080/"
+2026/03/03 22:12:30 [error] 15136#22636: *26 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET / HTTP/1.1", upstream: "http://127.0.0.1:5003/", host: "localhost:8080"
+2026/03/03 22:51:29 [notice] 21644#15348: signal process started

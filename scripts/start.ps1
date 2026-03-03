@@ -1,18 +1,19 @@
-# scripts/start.ps1
-$PROJECT_PATH = "C:\DP\DISTRIBUTED-PROGRAMMING\Valuator"
-$NGINX_PATH = "C:\nginx"
+Write-Host "Запуск системы Valuator + Nginx" -ForegroundColor Green
 
-Write-Host "Запуск Valuator + Nginx..."
+$ProjectPath = "C:\DP\DISTRIBUTED-PROGRAMMING\Valuator"
+$NginxPath = "C:\DP\DISTRIBUTED-PROGRAMMING\nginx"
 
-# Запуск экземпляров
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PROJECT_PATH'; dotnet run --urls 'http://0.0.0.0:5001'"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PROJECT_PATH'; dotnet run --urls 'http://0.0.0.0:5002'"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PROJECT_PATH'; dotnet run --urls 'http://0.0.0.0:5003'"
+Write-Host "Запуск экземпляра на порту 5001"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$ProjectPath'; dotnet run --urls 'http://0.0.0.0:5001'"
+
+Write-Host "Запуск экземпляра на порту 5002"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$ProjectPath'; dotnet run --urls 'http://0.0.0.0:5002'"
 
 Start-Sleep -Seconds 5
 
-# Запуск Nginx
-Set-Location $NGINX_PATH
-.\nginx.exe
+Write-Host "Запуск Nginx на порту 8080"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$NginxPath'; .\nginx.exe"
 
-Write-Host "Система запущена: http://localhost:8080"
+Write-Host "`n Система запущена!" -ForegroundColor Green
+Write-Host "Откройте в браузере: http://localhost:8080" -ForegroundColor Cyan
+Write-Host "Для остановки выполните: .\scripts\stop.ps1" -ForegroundColor Yellow
