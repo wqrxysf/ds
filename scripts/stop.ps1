@@ -8,4 +8,3 @@ Write-Host "Остановка экземпляров приложения"
 Get-Process -Name "dotnet" -ErrorAction SilentlyContinue | Stop-Process -Force
 
 Write-Host "`n Система остановлена!" -ForegroundColor Green
-Start-Sleep -Seconds 2

@@ -30,3 +30,6 @@
 2026/03/04 15:43:32 [error] 13988#15880: *1 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET / HTTP/1.1", upstream: "http://127.0.0.1:5001/", host: "localhost:8080"
 2026/03/04 16:06:19 [emerg] 23084#18848: invalid parameter "weight" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:17
 2026/03/04 16:07:31 [emerg] 16324#7844: unknown directive "ip-hash" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:17
+2026/03/18 12:38:13 [error] 24280#1384: *1 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET / HTTP/1.1", upstream: "http://127.0.0.1:5001/", host: "localhost:8080"
+2026/03/18 12:47:32 [notice] 16972#15972: signal process started
+2026/03/18 12:50:43 [notice] 18152#3392: signal process started
