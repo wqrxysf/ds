@@ -33,3 +33,8 @@
 2026/03/18 12:38:13 [error] 24280#1384: *1 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET / HTTP/1.1", upstream: "http://127.0.0.1:5001/", host: "localhost:8080"
 2026/03/18 12:47:32 [notice] 16972#15972: signal process started
 2026/03/18 12:50:43 [notice] 18152#3392: signal process started
+2026/03/18 14:38:14 [emerg] 20444#21180: host not found in upstream "localhost:5001" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:14
+2026/03/18 14:40:29 [emerg] 3804#19480: host not found in upstream "localhost:5001" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:14
+2026/03/18 14:42:51 [emerg] 23088#5896: host not found in upstream "localhost:5001" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:14
+2026/03/18 14:44:41 [emerg] 18012#7540: host not found in upstream "localhost:5001" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:14
+2026/03/18 14:45:04 [emerg] 12444#21044: host not found in upstream "localhost:5001" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:14
