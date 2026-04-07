@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RabbitMQ.Client;
+using System.Text;
+using System.Text.Json;
 using StackExchange.Redis;
 
 namespace Valuator.Pages;
@@ -23,7 +26,7 @@ public class IndexModel : PageModel
         _logger.LogInformation("Запрос на порту: {Port}", ServerPort);
     }
 
-    public IActionResult OnPost(string text)
+    public async Task<IActionResult> OnPost(string text)
     {
         _logger.LogDebug(text);
 
@@ -32,32 +35,47 @@ public class IndexModel : PageModel
 
         string id = Guid.NewGuid().ToString();
 
-        string similarityKey = "SIMILARITY-" + id;
+        string similarityKey = $"similarity:{id}";
         double similarity = CalculateSimilarity(text);
-        _redis.StringSet(similarityKey, similarity.ToString());
+        await _redis.StringSetAsync(similarityKey, similarity.ToString());
 
-        string textKey = "TEXT-" + id;
-        _redis.StringSet(textKey, text);
+        string textKey = $"text:{id}";
+        await _redis.StringSetAsync(textKey, text);
 
-        string rankKey = "RANK-" + id;
-        double rank = CalculateRank(text);
-        _redis.StringSet(rankKey, rank.ToString());
+        var task = new
+        {
+            Id = id,
+            Text = text
+        };
+        var messageJson = JsonSerializer.Serialize(task);
+
+        var factory = new ConnectionFactory { HostName = "localhost" };
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
+
+        await channel.QueueDeclareAsync(
+            queue: "valuator.processing.rank",
+            durable: true,
+            exclusive: false,
+            autoDelete: false
+        );
+
+        var body = Encoding.UTF8.GetBytes(messageJson);
+        await channel.BasicPublishAsync(
+            exchange: "",
+            routingKey: "valuator.processing.rank",
+            mandatory: false,
+            body: body
+        );
+
+        await _redis.StringSetAsync($"rank:{id}", "calculating");
 
         return Redirect($"summary?id={id}");
-    }
-
-    private double CalculateRank(string text)
-    {
-
-        int alphabeticCount = text.Count(c =>
-            ( char.IsLetter(c)));
-
-        return 1.0 - (double)alphabeticCount / text.Length;
     }
     private double CalculateSimilarity(string text)
     {
         var server = _redis.Multiplexer.GetServer(_redis.Multiplexer.GetEndPoints().First());
-        var keys = server.Keys(pattern: "TEXT-*");
+        var keys = server.Keys(pattern: "text:*");
 
         foreach (var key in keys)
         {

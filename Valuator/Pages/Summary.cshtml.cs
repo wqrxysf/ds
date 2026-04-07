@@ -1,12 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
+
 
 namespace Valuator.Pages;
 public class SummaryModel : PageModel
@@ -22,33 +17,38 @@ public class SummaryModel : PageModel
 
     public double Rank { get; set; }
     public double Similarity { get; set; }
+    public bool IsCompleted { get; private set; }
 
     public IActionResult OnGet(string id)
     {
         _logger.LogDebug(id);
 
-        string rankKey = "RANK-" + id;
-        string similarityKey = "SIMILARITY-" + id;
+        string rankKey = $"rank:{id}";
+        string similarityKey = $"similarity:{id}";
 
         var rankValue = _redis.StringGet(rankKey);
 
         var similarityValue = _redis.StringGet(similarityKey);
 
-        if (string.IsNullOrEmpty(rankValue) || string.IsNullOrEmpty(similarityValue))
+        if (rankValue.IsNullOrEmpty || rankValue == "calculating")
         {
-            return RedirectToPage("Index");
+            IsCompleted = false;
+            Rank = 0;
         }
-
-        if (!string.IsNullOrEmpty(rankValue))
+        else
         {
+            IsCompleted = true;
             Rank = double.Parse(rankValue);
         }
 
-        if (!string.IsNullOrEmpty(similarityValue))
+        if (!similarityValue.IsNullOrEmpty)
         {
             Similarity = double.Parse(similarityValue);
         }
-
+        else
+        {
+            Similarity = 0; 
+        }
         return Page();
     }
 }
