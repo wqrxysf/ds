@@ -36,7 +36,7 @@ consumer.Received += (model, ea) =>
         string redisKey = $"rank:{task.Id}";
         string redisValue = rank.ToString();
 
-        Console.WriteLine($"Попытка записи в Redis...");
+        Console.WriteLine($"Попытка записи в Redis..");
         Console.WriteLine($"Ключ: {redisKey}");
         Console.WriteLine($"Значение: {redisValue}");
 
