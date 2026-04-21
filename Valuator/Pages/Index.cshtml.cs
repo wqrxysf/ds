@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+Ôªøusing Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RabbitMQ.Client;
 using System.Text;
@@ -23,7 +23,7 @@ public class IndexModel : PageModel
     {
         ServerPort = HttpContext.Connection.LocalPort.ToString();
 
-        _logger.LogInformation("«‡ÔÓÒ Ì‡ ÔÓÚÛ: {Port}", ServerPort);
+        _logger.LogInformation("–ó–∞–ø—Ä–æ—Å –Ω–∞ –ø–æ—Ä—Ç—É: {Port}", ServerPort);
     }
 
     public async Task<IActionResult> OnPost(string text)
@@ -39,16 +39,20 @@ public class IndexModel : PageModel
         double similarity = CalculateSimilarity(text);
         await _redis.StringSetAsync(similarityKey, similarity.ToString());
 
+        await PublishSimilarityCalculatedEvent(id, similarity);
+
         string textKey = $"text:{id}";
         await _redis.StringSetAsync(textKey, text);
 
-        var task = new
-        {
-            Id = id,
-            Text = text
-        };
-        var messageJson = JsonSerializer.Serialize(task);
+        await _redis.StringSetAsync($"rank:{id}", "calculating");
 
+        await PublishRankTask(id, text);
+
+        return Redirect($"summary?id={id}");
+    }
+
+    private async Task PublishRankTask(string id, string text)
+    {
         var factory = new ConnectionFactory { HostName = "localhost" };
         await using var connection = await factory.CreateConnectionAsync();
         await using var channel = await connection.CreateChannelAsync();
@@ -60,17 +64,50 @@ public class IndexModel : PageModel
             autoDelete: false
         );
 
+        var task = new
+        {
+            Id = id,
+            Text = text
+        };
+
+        var messageJson = JsonSerializer.Serialize(task);
         var body = Encoding.UTF8.GetBytes(messageJson);
+
         await channel.BasicPublishAsync(
             exchange: "",
             routingKey: "valuator.processing.rank",
             mandatory: false,
             body: body
         );
+    }
 
-        await _redis.StringSetAsync($"rank:{id}", "calculating");
+    private async Task PublishSimilarityCalculatedEvent(string id, double similarity)
+    {
+        var factory = new ConnectionFactory { HostName = "localhost" };
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
 
-        return Redirect($"summary?id={id}");
+        await channel.ExchangeDeclareAsync(
+            exchange: "events.similarity.fanout",
+            type: "fanout",
+            durable: true
+            );
+
+        var evt = new SimilarityCalculatedEvent
+        {
+            Id = id,
+            Similarity = similarity,
+        };
+
+        var messageJson = JsonSerializer.Serialize(evt);
+        var body = Encoding.UTF8.GetBytes(messageJson);
+
+        await channel.BasicPublishAsync(
+            exchange: "events.similarity.fanout",
+            routingKey: "",
+            mandatory: false,
+            body: body
+        );
     }
     private double CalculateSimilarity(string text)
     {
@@ -88,4 +125,9 @@ public class IndexModel : PageModel
 
         return 0.0;
     }
+}
+public class SimilarityCalculatedEvent
+{
+    public string Id { get; set; } = string.Empty;
+    public double Similarity { get; set; }
 }

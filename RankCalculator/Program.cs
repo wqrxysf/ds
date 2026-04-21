@@ -4,7 +4,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using StackExchange.Redis;
 
-Console.WriteLine("RankCalculator запущен");
+Console.WriteLine("Запущен RankCalculator");
 
 var redis = ConnectionMultiplexer.Connect("localhost:6379").GetDatabase();
 
@@ -19,6 +19,7 @@ channel.QueueDeclare(
     autoDelete: false
 );
 
+
 var consumer = new EventingBasicConsumer(channel);
 
 consumer.Received += (model, ea) =>
@@ -30,17 +31,36 @@ consumer.Received += (model, ea) =>
 
         var task = JsonSerializer.Deserialize<RankingTask>(message);
 
-        Thread.Sleep(3000);
-
         double rank = CalculateRank(task.Text);
 
-        redis.StringSet($"rank:{task.Id}", rank.ToString());
+        string redisKey = $"rank:{task.Id}";
+        string redisValue = rank.ToString();
+
+        Console.WriteLine($"Попытка записи в Redis...");
+        Console.WriteLine($"Ключ: {redisKey}");
+        Console.WriteLine($"Значение: {redisValue}");
+
+        bool isSaved = redis.StringSet(redisKey, redisValue);
+
+        if (isSaved)
+        {
+            Console.WriteLine($"Данные записаны в Redis!");
+
+            var checkValue = redis.StringGet(redisKey);
+            Console.WriteLine($"Проверка чтения: {checkValue}");
+        }
+        else
+        {
+            Console.WriteLine($"ОШИБКА: Не удалось записать в Redis");
+        }
+
+        PublishRankCalculatedEvent(task.Id, rank, channel);
 
         channel.BasicAck(ea.DeliveryTag, false);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"ОШИБКА: {ex.Message}");
+        Console.WriteLine($"{ex.Message}");
     }
 };
 
@@ -51,6 +71,33 @@ channel.BasicConsume(
 );
 
 Thread.Sleep(Timeout.Infinite);
+
+static void PublishRankCalculatedEvent(string id, double rank, IModel channel)
+{
+    channel.ExchangeDeclare(
+        exchange: "events.rank.fanout",
+        type: "fanout",
+        durable: true
+    );
+
+    var evt = new RankCalculatedEvent
+    {
+        Id = id,
+        Rank = rank
+    };
+
+    var messageJson = JsonSerializer.Serialize(evt);
+    var body = Encoding.UTF8.GetBytes(messageJson);
+
+    channel.BasicPublish(
+        exchange: "events.rank.fanout",
+        routingKey: "",
+        mandatory: false,
+        body: body
+    );
+
+    Console.WriteLine("Published RankCalculated");
+}
 
 static double CalculateRank(string text)
 {
@@ -65,4 +112,10 @@ public class RankingTask
 {
     public string Id { get; set; }
     public string Text { get; set; }
+}
+
+public class RankCalculatedEvent
+{
+    public string Id { get; set; } = string.Empty;
+    public double Rank { get; set; }
 }
