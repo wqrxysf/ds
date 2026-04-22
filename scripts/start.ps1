@@ -4,14 +4,6 @@ $NginxPath = "C:\DP\DISTRIBUTED-PROGRAMMING\nginx"
 $RankCalcPath = "$ProjectPath\RankCalculator"
 $EventsLoggerPath = "$ProjectPath\EventsLogger"
 
-dotnet clean "$ValuatorPath\Valuator.csproj" --verbosity quiet
-dotnet clean "$RankCalcPath\RankCalculator.csproj" --verbosity quiet
-dotnet clean "$EventsLoggerPath\EventsLogger.csproj" --verbosity quiet
-
-dotnet build "$ValuatorPath\Valuator.csproj" --configuration Debug --verbosity quiet
-dotnet build "$RankCalcPath\RankCalculator.csproj" --configuration Debug --verbosity quiet
-dotnet build "$EventsLoggerPath\EventsLogger.csproj" --configuration Debug --verbosity quiet
-
 Write-Host "Запуск экземпляра на порту 5001"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$ValuatorPath'; dotnet run --urls 'http://0.0.0.0:5001'"
 
