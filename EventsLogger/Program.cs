@@ -34,20 +34,6 @@ channel.QueueBind(
     routingKey: ""
 );
 
-//channel.QueueDeclare(
-//    queue: "events.similarity.calculated",
-//    durable: true,
-//    exclusive: false,
-//    autoDelete: false
-//);
-
-//channel.QueueDeclare(
-//    queue: "events.rank.calculated",
-//    durable: true,
-//    exclusive: false,
-//    autoDelete: false
-//);
-
 var similarityConsumer = new EventingBasicConsumer(channel);
 similarityConsumer.Received += (model, ea) =>
 {

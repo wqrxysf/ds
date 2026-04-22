@@ -19,10 +19,9 @@ channel.QueueDeclare(
     autoDelete: false
 );
 
-
 var consumer = new EventingBasicConsumer(channel);
 
-consumer.Received += (model, ea) =>
+consumer.Received += async (model, ea) =>
 {
     try
     {
@@ -31,12 +30,16 @@ consumer.Received += (model, ea) =>
 
         var task = JsonSerializer.Deserialize<RankingTask>(message);
 
+        TimeSpan interval = TimeSpan.FromSeconds(new Random().Next(2, 7));
+        Console.WriteLine($"Waiting {interval}");
+        await Task.Delay(interval);
+
         double rank = CalculateRank(task.Text);
 
         string redisKey = $"rank:{task.Id}";
         string redisValue = rank.ToString();
 
-        Console.WriteLine($"Попытка записи в Redis..");
+        Console.WriteLine($"Попытка записи в Redis...");
         Console.WriteLine($"Ключ: {redisKey}");
         Console.WriteLine($"Значение: {redisValue}");
 

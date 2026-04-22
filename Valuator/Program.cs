@@ -1,4 +1,8 @@
 using StackExchange.Redis;
+using Microsoft.AspNetCore.SignalR;
+using Valuator.Hubs;
+using Valuator.Services;
+
 namespace Valuator;
 
 public class Program
@@ -15,6 +19,10 @@ public class Program
 
         builder.Services.AddRazorPages();
 
+        builder.Services.AddSignalR();
+
+        builder.Services.AddHostedService<RankUpdateService>();
+
         var app = builder.Build();
 
         if (!app.Environment.IsDevelopment())
@@ -28,6 +36,8 @@ public class Program
         app.UseAuthorization();
 
         app.MapRazorPages();
+
+        app.MapHub<RankHub>("/rankHub");
 
         app.Run();
     }

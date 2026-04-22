@@ -15,6 +15,7 @@ public class SummaryModel : PageModel
         _redis = redis.GetDatabase();
     }
 
+    public string? TaskId { get; set; }
     public double Rank { get; set; }
     public double Similarity { get; set; }
     public bool IsCompleted { get; private set; }
@@ -22,6 +23,13 @@ public class SummaryModel : PageModel
     public IActionResult OnGet(string id)
     {
         _logger.LogDebug(id);
+
+        TaskId = id;
+
+        if (string.IsNullOrEmpty(id))
+        {
+            return RedirectToPage("/Index");
+        }
 
         string rankKey = $"rank:{id}";
         string similarityKey = $"similarity:{id}";

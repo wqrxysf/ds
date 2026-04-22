@@ -3,11 +3,43 @@
 
 @if (Model.IsCompleted)
 {
-    <p>Оценка содержания: @Model.Rank</p>
+    <p>Оценка содержания: <span id="rankValue">@Model.Rank</span></p>
     <p>Плагиат: @Model.Similarity</p>
 }
 else
 {
-    <p>Оценка содержания: ещё вычисляется...</p>
+    <p>Оценка содержания: <span id="rankValue">ещё вычисляется...</span></p>
     <p>Плагиат: @Model.Similarity</p>
 }
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+<script>
+    const taskId = "@Model.TaskId";
+
+    if (taskId)
+    {
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/rankHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceiveRankUpdate", (data) => {
+            console.log("Получено обновление:", data);
+
+            if (data.id === taskId)
+            {
+                const rankSpan = document.getElementById("rankValue");
+
+                if (rankSpan)
+                {
+                    rankSpan.innerText = data.rank;
+                }
+            }
+        });
+
+        connection.start()
+            .then(() => console.log("SignalR Connected"))
+            .catch(err => console.error("SignalR Error:", err));
+    }
+</script>
