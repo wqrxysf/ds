@@ -146,3 +146,6 @@
 2026/04/22 11:21:56 [error] 16924#1864: *1 no live upstreams while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET / HTTP/1.1", upstream: "http://backend/", host: "localhost:8080", referrer: "http://localhost:8080/summary?id=af92a238-79ed-4d22-9040-f1165764ac11"
 2026/04/22 11:21:56 [error] 16924#1864: *1 no live upstreams while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", upstream: "http://backend/.well-known/appspecific/com.chrome.devtools.json", host: "localhost:8080"
 2026/04/22 16:07:58 [emerg] 23936#11360: host not found in upstream "localhost:5001" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:11
+2026/04/22 16:53:33 [emerg] 11728#7536: host not found in upstream "localhost:5001" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:11
+2026/04/22 16:57:41 [emerg] 4168#8684: host not found in upstream "localhost:5001" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:11
+2026/04/22 17:04:49 [emerg] 15324#23232: host not found in upstream "localhost:5001" in C:\DP\DISTRIBUTED-PROGRAMMING\nginx/conf/nginx.conf:11
