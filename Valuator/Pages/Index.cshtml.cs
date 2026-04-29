@@ -11,18 +11,27 @@ namespace Valuator.Pages;
 public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
-    private readonly IConnectionMultiplexer _mainDb;
-
-    private readonly ConnectionMultiplexerFactory _shardFactory;
+    private readonly IDatabase _redis;
     public string ServerPort { get; set; } = "";
 
-    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer mainDb)
+    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer redis)
     {
         _logger = logger;
-        _mainDb = mainDb;
-
-        _shardFactory = new ConnectionMultiplexerFactory();
+        _redis = redis.GetDatabase();
     }
+    //private readonly ILogger<IndexModel> _logger;
+    //private readonly IConnectionMultiplexer _mainDb;
+
+    //private readonly ConnectionMultiplexerFactory _shardFactory;
+    //public string ServerPort { get; set; } = "";
+
+    //public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer mainDb)
+    //{
+    //    _logger = logger;
+    //    _mainDb = mainDb;
+
+    //    _shardFactory = new ConnectionMultiplexerFactory();
+    //}
 
     public void OnGet()
     {
