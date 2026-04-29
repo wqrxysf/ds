@@ -4,6 +4,7 @@ $NginxPath = "C:\DP\DISTRIBUTED-PROGRAMMING\nginx"
 $RankCalcPath = "$ProjectPath\RankCalculator"
 $EventsLoggerPath = "$ProjectPath\EventsLogger"
 
+dotnet clean "$ValuatorPath\Valuator.csproj" --verbosity quiet
 dotnet build "$ValuatorPath\Valuator.csproj" --configuration Debug --verbosity quiet
 
 Write-Host "Запуск экземпляра на порту 5001"
