@@ -4,19 +4,24 @@ using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
 using StackExchange.Redis;
+using Valuator.Services;
 
 namespace Valuator.Pages;
 
 public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
-    private readonly IDatabase _redis;
+    private readonly IConnectionMultiplexer _mainDb;
+
+    private readonly ConnectionMultiplexerFactory _shardFactory;
     public string ServerPort { get; set; } = "";
 
-    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer redis)
+    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer mainDb)
     {
         _logger = logger;
-        _redis = redis.GetDatabase();
+        _mainDb = mainDb;
+
+        _shardFactory = new ConnectionMultiplexerFactory();
     }
 
     public void OnGet()
