@@ -3,9 +3,25 @@ $ValuatorPath = "$ProjectPath\Valuator"
 $NginxPath = "C:\DP\DISTRIBUTED-PROGRAMMING\nginx"
 $RankCalcPath = "$ProjectPath\RankCalculator"
 $EventsLoggerPath = "$ProjectPath\EventsLogger"
+$RedisPath = "C:\Redis"
 
 dotnet clean "$ValuatorPath\Valuator.csproj" --verbosity quiet
 dotnet build "$ValuatorPath\Valuator.csproj" --configuration Debug --verbosity quiet
+
+Write-Host "Запуск Redis экземпляров"
+
+function Start-RedisInstance {
+    param($Port, $Name)
+    $args = "--port $Port --appendonly no"
+    Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList $args -WindowStyle Hidden -PassThru
+}
+
+Start-RedisInstance -Port 6379 -Name "MAIN"
+Start-RedisInstance -Port 6380 -Name "RU"
+Start-RedisInstance -Port 6381 -Name "EU"
+Start-RedisInstance -Port 6382 -Name "ASIA"
+
+Start-Sleep -Seconds 2
 
 Write-Host "Запуск экземпляра на порту 5001"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$ValuatorPath'; dotnet run --no-build --urls 'http://127.0.0.1:5001'"

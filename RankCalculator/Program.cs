@@ -6,8 +6,6 @@ using StackExchange.Redis;
 
 Console.WriteLine("Запущен RankCalculator");
 
-var redis = ConnectionMultiplexer.Connect("localhost:6379").GetDatabase();
-
 var factory = new ConnectionFactory { HostName = "localhost" };
 var connection = factory.CreateConnection();
 var channel = connection.CreateModel();
@@ -30,8 +28,27 @@ consumer.Received += async (model, ea) =>
 
         var task = JsonSerializer.Deserialize<RankingTask>(message);
 
+        if (task == null || string.IsNullOrEmpty(task.Region))
+        {
+            channel.BasicAck(ea.DeliveryTag, false);
+            return;
+        }
+
+        string logMessage = $"LOOKUP: {task.Id}, {task.Region}";
+        Console.WriteLine(logMessage);
+
+        string envName = $"DB_{task.Region}";
+        string connectionString = Environment.GetEnvironmentVariable(envVarName);
+
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new InvalidOperationException($"'{envName}' не найдена");
+        }
+
+        using var redisConnection = ConnectionMultiplexer.Connect(connectionString);
+        var redis = redisConnection.GetDatabase();
+
         TimeSpan interval = TimeSpan.FromSeconds(new Random().Next(2, 7));
-        Console.WriteLine($"Waiting {interval}");
         await Task.Delay(interval);
 
         double rank = CalculateRank(task.Text);
@@ -39,22 +56,18 @@ consumer.Received += async (model, ea) =>
         string redisKey = $"rank:{task.Id}";
         string redisValue = rank.ToString();
 
-        Console.WriteLine($"Попытка записи в Redis...");
-        Console.WriteLine($"Ключ: {redisKey}");
-        Console.WriteLine($"Значение: {redisValue}");
+        Console.WriteLine($"Запись в шард [{task.Region}] ({connectionString})");
+        Console.WriteLine($"   Ключ: {redisKey}, Значение: {redisValue}");
 
-        bool isSaved = redis.StringSet(redisKey, redisValue);
+        bool isSaved = await redis.StringSetAsync(redisKey, redisValue);
 
         if (isSaved)
         {
-            Console.WriteLine($"Данные записаны в Redis!");
-
-            var checkValue = redis.StringGet(redisKey);
-            Console.WriteLine($"Проверка чтения: {checkValue}");
+            Console.WriteLine($" Данные записаны в Redis ({task.Region})");
         }
         else
         {
-            Console.WriteLine($"ОШИБКА: Не удалось записать в Redis");
+            Console.WriteLine($" ОШИБКА: Не удалось записать в Redis ({task.Region})");
         }
 
         PublishRankCalculatedEvent(task.Id, rank, channel);
@@ -115,6 +128,7 @@ public class RankingTask
 {
     public string Id { get; set; }
     public string Text { get; set; }
+    public string Region { get; set; };
 }
 
 public class RankCalculatedEvent

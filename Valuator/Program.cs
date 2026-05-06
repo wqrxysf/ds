@@ -11,11 +11,14 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        string mainDbConnectionString = Environment.GetEnvironmentVariable("DB_MAIN") ?? "localhost:6379";
+
         builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
-            var configuration = ConfigurationOptions.Parse("localhost:6379");
-            return ConnectionMultiplexer.Connect(configuration);
+            return ConnectionMultiplexer.Connect(mainDbConnectionString);
         });
+
+        builder.Services.AddSingleton<ConnectionMultiplexerFactory>();
 
         builder.Services.AddRazorPages();
 

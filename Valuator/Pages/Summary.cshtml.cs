@@ -1,18 +1,21 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StackExchange.Redis;
+using Valuator.Services;
 
 
 namespace Valuator.Pages;
 public class SummaryModel : PageModel
 {
     private readonly ILogger<SummaryModel> _logger;
-    private readonly IDatabase _redis;
+    private readonly IConnectionMultiplexer _mainDb;
+    private readonly ConnectionMultiplexerFactory _shardFactory;
 
-    public SummaryModel(ILogger<SummaryModel> logger, IConnectionMultiplexer redis)
+    public SummaryModel(ILogger<SummaryModel> logger, IConnectionMultiplexer mainDb, ConnectionMultiplexerFactory shardFactory)
     {
         _logger = logger;
-        _redis = redis.GetDatabase();
+        _mainDb = mainDb;
+        _shardFactory = shardFactory;
     }
 
     public string? TaskId { get; set; }
@@ -20,42 +23,63 @@ public class SummaryModel : PageModel
     public double Similarity { get; set; }
     public bool IsCompleted { get; private set; }
 
-    public IActionResult OnGet(string id)
+    public async Task<IActionResult> OnGet(string id)
     {
         _logger.LogDebug(id);
 
         TaskId = id;
 
-        if (string.IsNullOrEmpty(id))
+        try
         {
-            return RedirectToPage("/Index");
+            using var shardConnection = await _shardFactory.GetShardConnectionByTaskIdAsync(id, _mainDb, _logger);
+
+            var shardDb = shardConnection.GetDatabase();
+
+            string rankKey = $"rank:{id}";
+            string similarityKey = $"similarity:{id}";
+
+            var rankValue = await shardDb.StringGetAsync(rankKey);
+            var similarityValue = await shardDb.StringGetAsync(similarityKey);
+
+            if (rankValue.IsNullOrEmpty || rankValue == "calculating")
+            {
+                IsCompleted = false;
+                Rank = 0;
+            }
+            else
+            {
+                IsCompleted = true;
+
+                if (double.TryParse(rankValue, out double r))
+                {
+                    Rank = r;
+                }
+                else
+                {
+                    Rank = 0;
+                    IsCompleted = false;
+                }
+            }
+
+            if (!similarityValue.IsNullOrEmpty)
+            {
+                if (double.TryParse(similarityValue, out double s))
+                {
+                    Similarity = s;
+                }
+            }
+            else
+            {
+                Similarity = 0;
+            }
         }
-
-        string rankKey = $"rank:{id}";
-        string similarityKey = $"similarity:{id}";
-
-        var rankValue = _redis.StringGet(rankKey);
-
-        var similarityValue = _redis.StringGet(similarityKey);
-
-        if (rankValue.IsNullOrEmpty || rankValue == "calculating")
+        catch (KeyNotFoundException ex)
         {
-            IsCompleted = false;
-            Rank = 0;
+            _logger.LogError(ex, $"{id} не найден в Shard Map");
         }
-        else
+        catch (Exception ex)
         {
-            IsCompleted = true;
-            Rank = double.Parse(rankValue);
-        }
-
-        if (!similarityValue.IsNullOrEmpty)
-        {
-            Similarity = double.Parse(similarityValue);
-        }
-        else
-        {
-            Similarity = 0; 
+            _logger.LogError(ex, $"Ошибка id: {id}");
         }
         return Page();
     }

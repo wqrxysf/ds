@@ -1,5 +1,14 @@
 Write-Host "Остановка системы" -ForegroundColor Red
 
+$redisProcesses = Get-Process redis-server -ErrorAction SilentlyContinue
+
+if ($redisProcesses) {
+    foreach ($proc in $redisProcesses) {
+        Stop-Process -Id $proc.Id -Force
+        Write-Host "Процесс Redis (PID: $($proc.Id)) остановлен."
+    }
+}
+
 Write-Host "Остановка Nginx..."
 $NginxPath = "C:\DP\DISTRIBUTED-PROGRAMMING\nginx"
 Stop-Process -Name "nginx" -Force -ErrorAction SilentlyContinue

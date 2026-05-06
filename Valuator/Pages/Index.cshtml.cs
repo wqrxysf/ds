@@ -11,61 +11,69 @@ namespace Valuator.Pages;
 public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
-    private readonly IDatabase _redis;
+    private readonly IDatabase _mainDb;
+
+    private readonly ConnectionMultiplexerFactory _shardFactory;
+
     public string ServerPort { get; set; } = "";
 
-    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer redis)
+    private static readonly Dictionary<string, string> CountryMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Russia", "RU" },
+        { "France", "EU" },
+        { "Germany", "EU" },
+        { "UAE", "ASIA" },
+        { "India", "ASIA" }
+    };
+    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer mainDb)
     {
         _logger = logger;
-        _redis = redis.GetDatabase();
+        _mainDb = mainDb.GetDatabase();
+
+        _shardFactory = new ConnectionMultiplexerFactory();
     }
-    //private readonly ILogger<IndexModel> _logger;
-    //private readonly IConnectionMultiplexer _mainDb;
-
-    //private readonly ConnectionMultiplexerFactory _shardFactory;
-    //public string ServerPort { get; set; } = "";
-
-    //public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer mainDb)
-    //{
-    //    _logger = logger;
-    //    _mainDb = mainDb;
-
-    //    _shardFactory = new ConnectionMultiplexerFactory();
-    //}
 
     public void OnGet()
     {
         ServerPort = HttpContext.Connection.LocalPort.ToString();
-
         _logger.LogInformation("Запрос на порту: {Port}", ServerPort);
     }
 
-    public async Task<IActionResult> OnPost(string text)
+    public async Task<IActionResult> OnPost(string text, string country)
     {
-        _logger.LogDebug(text);
+        _logger.LogDebug($"Текст: {text}, Страна: {country}");
 
-        if (string.IsNullOrEmpty(text))
-            return Redirect($"index");
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(country))
+            return RedirectToPage();
+
+        if (!CountryMap.TryGetValue(country, out string region))
+        {
+            ModelState.AddModelError("", "Неизвестная страна");
+            return Page();
+        }
 
         string id = Guid.NewGuid().ToString();
+        _logger.LogInformation($"Задача {id} для региона {region}");
 
-        string similarityKey = $"similarity:{id}";
-        double similarity = CalculateSimilarity(text);
-        await _redis.StringSetAsync(similarityKey, similarity.ToString());
+        var shardConnection = _shardFactory.GetConnection(region);
+        var shardDb = shardConnection.GetDatabase();
+
+        double similarity = CalculateSimilarity(text, shardDb);
+
+        await shardDb.StringSetAsync($"text:{id}", text);
+        await shardDb.StringSetAsync($"similarity:{id}", similarity.ToString());
+        await shardDb.StringSetAsync($"rank:{id}", "calculating");
 
         await PublishSimilarityCalculatedEvent(id, similarity);
 
-        string textKey = $"text:{id}";
-        await _redis.StringSetAsync(textKey, text);
+        await _mainDb.StringSetAsync($"shardmap:{id}", region);
 
-        await _redis.StringSetAsync($"rank:{id}", "calculating");
+        await PublishRankTask(id, text, region);
 
-        await PublishRankTask(id, text);
-
-        return Redirect($"summary?id={id}");
+        return Redirect($"Summary?id={id}");
     }
 
-    private async Task PublishRankTask(string id, string text)
+    private async Task PublishRankTask(string id, string text, string region)
     {
         var factory = new ConnectionFactory { HostName = "localhost" };
         await using var connection = await factory.CreateConnectionAsync();
@@ -81,7 +89,8 @@ public class IndexModel : PageModel
         var task = new
         {
             Id = id,
-            Text = text
+            Text = text,
+            Region = region
         };
 
         var messageJson = JsonSerializer.Serialize(task);
@@ -105,7 +114,7 @@ public class IndexModel : PageModel
             exchange: "events.similarity.fanout",
             type: "fanout",
             durable: true
-            );
+        );
 
         var evt = new SimilarityCalculatedEvent
         {
@@ -123,15 +132,18 @@ public class IndexModel : PageModel
             body: body
         );
     }
-    private double CalculateSimilarity(string text)
+
+    private double CalculateSimilarity(string text, IDatabase db)
     {
-        var server = _redis.Multiplexer.GetServer(_redis.Multiplexer.GetEndPoints().First());
+        var multiplexer = ((ConnectionMultiplexer)db.Multiplexer);
+        var server = multiplexer.GetServer(multiplexer.GetEndPoints().First());
+
         var keys = server.Keys(pattern: "text:*");
 
         foreach (var key in keys)
         {
-            var existingText = _redis.StringGet(key);
-            if (existingText == text)
+            var existingText = db.StringGet(key);
+            if (!existingText.IsNullOrEmpty && existingText == text)
             {
                 return 1.0;
             }
@@ -140,6 +152,7 @@ public class IndexModel : PageModel
         return 0.0;
     }
 }
+
 public class SimilarityCalculatedEvent
 {
     public string Id { get; set; } = string.Empty;
