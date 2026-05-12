@@ -1,8 +1,9 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using Microsoft.AspNetCore.SignalR;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using Microsoft.AspNetCore.SignalR;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Valuator.Hubs;
 
 namespace Valuator.Services;

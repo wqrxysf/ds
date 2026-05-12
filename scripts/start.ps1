@@ -8,18 +8,17 @@ $RedisPath = "C:\Redis"
 dotnet clean "$ValuatorPath\Valuator.csproj" --verbosity quiet
 dotnet build "$ValuatorPath\Valuator.csproj" --configuration Debug --verbosity quiet
 
+dotnet clean "$RankCalcPath\RankCalculator.csproj" --verbosity quiet
+dotnet build "$RankCalcPath\RankCalculator.csproj" --configuration Debug --verbosity quiet
+
 Write-Host "Запуск Redis экземпляров"
 
-function Start-RedisInstance {
-    param($Port, $Name)
-    $args = "--port $Port --appendonly no"
-    Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList $args -WindowStyle Hidden -PassThru
-}
+Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6379 --appendonly no" -WindowStyle Hidden
+Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6380 --appendonly no" -WindowStyle Hidden
+Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6381 --appendonly no" -WindowStyle Hidden
+Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6382 --appendonly no" -WindowStyle Hidden
 
-Start-RedisInstance -Port 6379 -Name "MAIN"
-Start-RedisInstance -Port 6380 -Name "RU"
-Start-RedisInstance -Port 6381 -Name "EU"
-Start-RedisInstance -Port 6382 -Name "ASIA"
+Start-Sleep -Seconds 2
 
 Start-Sleep -Seconds 2
 

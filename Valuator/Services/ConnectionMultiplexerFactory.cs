@@ -1,16 +1,24 @@
 using StackExchange.Redis;
 
+
+
 namespace Valuator.Services
 {
     public class ConnectionMultiplexerFactory
     {
+        private static readonly Dictionary<string, string> countryMap = new Dictionary<string, string>
+        {   
+            { "MAIN", "localhost:6379" },
+            { "RU", "localhost:6380" },
+            { "EU", "localhost:6381" },
+            { "ASIA", "localhost:6382" }
+        };
         public IConnectionMultiplexer GetConnection(string region)
         {
-            string envName = $"DB_{region}";
-            string? connectionString = Environment.GetEnvironmentVariable(envName);
+            countryMap.TryGetValue(region, out string connectionString);
 
             if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException($"'{envName}' не найдена");
+                throw new InvalidOperationException($"'{region}' не найдена");
 
             return ConnectionMultiplexer.Connect(connectionString);
         }

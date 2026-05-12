@@ -10,6 +10,13 @@ var factory = new ConnectionFactory { HostName = "localhost" };
 var connection = factory.CreateConnection();
 var channel = connection.CreateModel();
 
+var countryMap = new Dictionary<string, string>
+{
+    { "RU", "localhost:6380" },
+    { "EU", "localhost:6381" },
+    { "ASIA", "localhost:6382" }
+};
+
 channel.QueueDeclare(
     queue: "valuator.processing.rank",
     durable: true,
@@ -37,13 +44,7 @@ consumer.Received += async (model, ea) =>
         string logMessage = $"LOOKUP: {task.Id}, {task.Region}";
         Console.WriteLine(logMessage);
 
-        string envName = $"DB_{task.Region}";
-        string connectionString = Environment.GetEnvironmentVariable(envVarName);
-
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            throw new InvalidOperationException($"'{envName}' не найдена");
-        }
+        countryMap.TryGetValue(task.Region, out string connectionString);
 
         using var redisConnection = ConnectionMultiplexer.Connect(connectionString);
         var redis = redisConnection.GetDatabase();
@@ -128,7 +129,7 @@ public class RankingTask
 {
     public string Id { get; set; }
     public string Text { get; set; }
-    public string Region { get; set; };
+    public string Region { get; set; }
 }
 
 public class RankCalculatedEvent
