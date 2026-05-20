@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RabbitMQ.Client;
+using StackExchange.Redis;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using StackExchange.Redis;
 using Valuator.Services;
 
 namespace Valuator.Pages;
@@ -15,6 +16,8 @@ public class IndexModel : PageModel
 
     private readonly ConnectionMultiplexerFactory _shardFactory;
 
+    private readonly IUserService _userService;
+
     public string ServerPort { get; set; } = "";
 
     private static readonly Dictionary<string, string> CountryMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -25,12 +28,14 @@ public class IndexModel : PageModel
         { "UAE", "ASIA" },
         { "India", "ASIA" }
     };
-    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer mainDb)
+    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer mainDb, ConnectionMultiplexerFactory shardFactory, IUserService userService)
     {
         _logger = logger;
         _mainDb = mainDb.GetDatabase();
 
-        _shardFactory = new ConnectionMultiplexerFactory();
+        _shardFactory = shardFactory;
+
+        _userService = userService;
     }
 
     public void OnGet()
@@ -41,6 +46,11 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPost(string text, string country)
     {
+        if (!HttpContext.User.Identity?.IsAuthenticated ?? true)
+        {
+            return RedirectToPage("/Account/Login", new { returnUrl = "/Index" });
+        }
+
         _logger.LogDebug($"Текст: {text}, Страна: {country}");
 
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(country))
@@ -53,6 +63,9 @@ public class IndexModel : PageModel
         }
 
         string id = Guid.NewGuid().ToString();
+
+        string userId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
         _logger.LogInformation($"Задача {id} для региона {region}");
 
         var shardConnection = _shardFactory.GetConnection(region);
@@ -63,6 +76,8 @@ public class IndexModel : PageModel
         await shardDb.StringSetAsync($"text:{id}", text);
         await shardDb.StringSetAsync($"similarity:{id}", similarity.ToString());
         await shardDb.StringSetAsync($"rank:{id}", "calculating");
+
+        await shardDb.StringSetAsync($"author:{id}", userId);
 
         await PublishSimilarityCalculatedEvent(id, similarity);
 

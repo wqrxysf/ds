@@ -1,11 +1,17 @@
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
-
-
 
 namespace Valuator.Services
 {
     public class ConnectionMultiplexerFactory
     {
+        private readonly IOptions<RedisSettings> _redisSettings;
+
+        public ConnectionMultiplexerFactory(IOptions<RedisSettings> redisSettings)
+        {
+            _redisSettings = redisSettings;
+        }
+
         private static readonly Dictionary<string, string> countryMap = new Dictionary<string, string>
         {   
             { "MAIN", "localhost:6379" },
@@ -15,10 +21,13 @@ namespace Valuator.Services
         };
         public IConnectionMultiplexer GetConnection(string region)
         {
-            countryMap.TryGetValue(region, out string connectionString);
+            countryMap.TryGetValue(region, out string address);
 
-            if (string.IsNullOrEmpty(connectionString))
+            if (string.IsNullOrEmpty(address))
                 throw new InvalidOperationException($"'{region}' не найдена");
+
+            string password = _redisSettings.Value.Password;
+            string connectionString = $"{address},password={password}";
 
             return ConnectionMultiplexer.Connect(connectionString);
         }

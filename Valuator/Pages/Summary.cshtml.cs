@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StackExchange.Redis;
+using System.Security.Claims;
 using Valuator.Services;
 
 
@@ -25,15 +26,36 @@ public class SummaryModel : PageModel
 
     public async Task<IActionResult> OnGet(string id)
     {
+        if (!HttpContext.User.Identity?.IsAuthenticated ?? true)
+        {
+            return RedirectToPage("/Account/Login", new { returnUrl = $"/Summary?id={id}" });
+        }
+
         _logger.LogDebug(id);
 
         TaskId = id;
+
+        string currentUserId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(currentUserId))
+            return BadRequest("Пользователь не определен");
+
 
         try
         {
             using var shardConnection = await _shardFactory.GetShardConnectionByTaskIdAsync(id, _mainDb, _logger);
 
             var shardDb = shardConnection.GetDatabase();
+
+            var authorId = await shardDb.StringGetAsync($"author:{id}");
+
+            if (authorId.IsNullOrEmpty || authorId != currentUserId)
+            {
+                _logger.LogWarning(
+                    "Пользователь {UserId} попытался получить доступ к задаче {TaskId} автора {AuthorId}",
+                    currentUserId, id, authorId);
+                return RedirectToPage("/Index"); 
+            }
 
             string rankKey = $"rank:{id}";
             string similarityKey = $"similarity:{id}";

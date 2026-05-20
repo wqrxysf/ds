@@ -1,5 +1,6 @@
-using StackExchange.Redis;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.SignalR;
+using StackExchange.Redis;
 using Valuator.Hubs;
 using Valuator.Services;
 
@@ -11,13 +12,29 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
+        
+        builder.Services.AddSingleton<ConnectionMultiplexerFactory>();
+
         builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
             var factory = sp.GetRequiredService<ConnectionMultiplexerFactory>();
             return factory.GetConnection("MAIN");
         });
 
-        builder.Services.AddSingleton<ConnectionMultiplexerFactory>();
+        builder.Services.AddSingleton<IUserService, UserService>();
+
+        builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.LoginPath = "/Account/Login";
+                options.LogoutPath = "/Account/Logout";
+                options.ExpireTimeSpan = TimeSpan.FromHours(2);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            });
+
+        builder.Services.AddAuthorization();
 
         builder.Services.AddRazorPages();
 
@@ -34,6 +51,8 @@ public class Program
         app.UseStaticFiles();
 
         app.UseRouting();
+
+        app.UseAuthentication();
 
         app.UseAuthorization();
 

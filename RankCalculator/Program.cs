@@ -6,7 +6,16 @@ using StackExchange.Redis;
 
 Console.WriteLine("Запущен RankCalculator");
 
-var factory = new ConnectionFactory { HostName = "localhost" };
+var redisPassword = Environment.GetEnvironmentVariable("Redis__Password");
+var rabbitUsername = Environment.GetEnvironmentVariable("RabbitMQ__Username");
+var rabbitPassword = Environment.GetEnvironmentVariable("RabbitMQ__Password");
+
+var factory = new ConnectionFactory
+{
+    HostName = "localhost",
+    UserName = rabbitUsername,
+    Password = rabbitPassword
+};
 var connection = factory.CreateConnection();
 var channel = connection.CreateModel();
 
@@ -44,7 +53,16 @@ consumer.Received += async (model, ea) =>
         string logMessage = $"LOOKUP: {task.Id}, {task.Region}";
         Console.WriteLine(logMessage);
 
-        countryMap.TryGetValue(task.Region, out string connectionString);
+        if (!countryMap.TryGetValue(task.Region, out string address))
+        {
+            Console.WriteLine($"Неизвестный регион: {task.Region}");
+            channel.BasicAck(ea.DeliveryTag, false);
+            return;
+        }
+
+        string connectionString = $"{address},password={redisPassword}";
+        Console.WriteLine($"Подключение к Redis: {connectionString}");
+
 
         using var redisConnection = ConnectionMultiplexer.Connect(connectionString);
         var redis = redisConnection.GetDatabase();

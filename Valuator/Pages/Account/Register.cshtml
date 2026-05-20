@@ -1,0 +1,25 @@
+@page
+@model Valuator.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Регистрация";
+}
+
+<h2>Регистрация</h2>
+
+<form method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    
+    <div>
+        <label>Логин:</label>
+        <input name="login" required />
+    </div>
+    
+    <div>
+        <label>Пароль:</label>
+        <input name="password" type="password" required />
+    </div>
+    
+    <button type="submit">Зарегистрироваться</button>
+</form>
+
+<p>Уже есть аккаунт? <a href="/Account/Login">Войти</a></p>

@@ -5,6 +5,8 @@ $RankCalcPath = "$ProjectPath\RankCalculator"
 $EventsLoggerPath = "$ProjectPath\EventsLogger"
 $RedisPath = "C:\Redis"
 
+$RedisPassword = [Environment]::GetEnvironmentVariable("Redis__Password", "User")
+
 dotnet clean "$ValuatorPath\Valuator.csproj" --verbosity quiet
 dotnet build "$ValuatorPath\Valuator.csproj" --configuration Debug --verbosity quiet
 
@@ -13,12 +15,10 @@ dotnet build "$RankCalcPath\RankCalculator.csproj" --configuration Debug --verbo
 
 Write-Host "Запуск Redis экземпляров"
 
-Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6379 --appendonly no" -WindowStyle Hidden
-Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6380 --appendonly no" -WindowStyle Hidden
-Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6381 --appendonly no" -WindowStyle Hidden
-Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6382 --appendonly no" -WindowStyle Hidden
-
-Start-Sleep -Seconds 2
+Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6379 --appendonly no --requirepass $RedisPassword" -WindowStyle Hidden
+Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6380 --appendonly no --requirepass $RedisPassword" -WindowStyle Hidden
+Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6381 --appendonly no --requirepass $RedisPassword" -WindowStyle Hidden
+Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6382 --appendonly no --requirepass $RedisPassword" -WindowStyle Hidden
 
 Start-Sleep -Seconds 2
 

@@ -26,6 +26,20 @@
                             <a class="nav-link text-dark" asp-area="" asp-page="/About">Об авторе</a>
                         </li>
                     </ul>
+                    <div class="d-flex align-items-center gap-2 ms-auto">
+                        @if (User.Identity?.IsAuthenticated ?? false)
+                        {
+                            <span class="navbar-text">Привет, @User.Identity.Name!</span>
+                            <form method="post" asp-page="/Account/Logout" class="d-inline">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">Выйти</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a href="/Account/Login" class="btn btn-outline-primary btn-sm">Войти</a>
+                            <a href="/Account/Register" class="btn btn-primary btn-sm">Регистрация</a>
+                        }
+                    </div>
                 </div>
             </div>
         </nav>
