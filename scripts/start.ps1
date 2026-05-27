@@ -4,6 +4,7 @@ $NginxPath = "C:\DP\DISTRIBUTED-PROGRAMMING\nginx"
 $RankCalcPath = "$ProjectPath\RankCalculator"
 $EventsLoggerPath = "$ProjectPath\EventsLogger"
 $RedisPath = "C:\Redis"
+$BaseDataDir = "C:\Redis\data"
 
 $RedisPassword = [Environment]::GetEnvironmentVariable("Redis__Password", "User")
 
@@ -13,12 +14,27 @@ dotnet build "$ValuatorPath\Valuator.csproj" --configuration Debug --verbosity q
 dotnet clean "$RankCalcPath\RankCalculator.csproj" --verbosity quiet
 dotnet build "$RankCalcPath\RankCalculator.csproj" --configuration Debug --verbosity quiet
 
+New-Item -ItemType Directory -Path "$BaseDataDir\main" -Force | Out-Null
+New-Item -ItemType Directory -Path "$BaseDataDir\ru" -Force | Out-Null
+New-Item -ItemType Directory -Path "$BaseDataDir\eu" -Force | Out-Null
+New-Item -ItemType Directory -Path "$BaseDataDir\asia" -Force | Out-Null
+
 Write-Host "Запуск Redis экземпляров"
 
-Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6379 --appendonly no --requirepass $RedisPassword" -WindowStyle Hidden
-Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6380 --appendonly no --requirepass $RedisPassword" -WindowStyle Hidden
-Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6381 --appendonly no --requirepass $RedisPassword" -WindowStyle Hidden
-Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList "--port 6382 --appendonly no --requirepass $RedisPassword" -WindowStyle Hidden
+function Start-RedisInstance {
+    param($Port, $Name, $DataSubDir)
+    
+    $dataDir = Join-Path $BaseDataDir $DataSubDir
+    
+    $args = "--port $Port --appendonly yes --dir `"$dataDir`" --requirepass $RedisPassword"
+    
+    Start-Process -FilePath "$RedisPath\redis-server.exe" -ArgumentList $args -WindowStyle Hidden
+}
+
+Start-RedisInstance -Port 6379 -Name "MAIN" -DataSubDir "main"
+Start-RedisInstance -Port 6380 -Name "RU"   -DataSubDir "ru"
+Start-RedisInstance -Port 6381 -Name "EU"   -DataSubDir "eu"
+Start-RedisInstance -Port 6382 -Name "ASIA" -DataSubDir "asia"
 
 Start-Sleep -Seconds 2
 

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
@@ -12,11 +13,12 @@ public class RankUpdateService : BackgroundService
 {
     private readonly ILogger<RankUpdateService> _logger;
     private readonly IServiceProvider _serviceProvider;
-
-    public RankUpdateService(ILogger<RankUpdateService> logger, IServiceProvider serviceProvider)
+    private readonly IOptions<RabbitMQSettings> _rabbitSettings;
+    public RankUpdateService(ILogger<RankUpdateService> logger, IServiceProvider serviceProvider, IOptions<RabbitMQSettings> rabbitSettings)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
+        _rabbitSettings = rabbitSettings;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -25,7 +27,12 @@ public class RankUpdateService : BackgroundService
 
         try
         {
-            var factory = new ConnectionFactory { HostName = "localhost" };
+            var factory = new ConnectionFactory 
+            {
+                HostName = _rabbitSettings.Value.Host,
+                UserName = _rabbitSettings.Value.Username,
+                Password = _rabbitSettings.Value.Password
+            };
             await using var connection = await factory.CreateConnectionAsync();
             await using var channel = await connection.CreateChannelAsync();
 

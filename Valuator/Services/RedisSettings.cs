@@ -12,11 +12,4 @@ namespace Valuator.Services
         public string EU { get; set; } = "localhost:6381";
         public string ASIA { get; set; } = "localhost:6382";
     }
-
-    public class RabbitMqSettings
-    {
-        public string Host { get; set; } = "localhost";
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-    }
 }

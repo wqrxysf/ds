@@ -1,3 +1,4 @@
+using StackExchange.Redis;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
@@ -21,46 +22,77 @@ namespace Valuator.Services
 
     public class UserService : IUserService
     {
-        private static readonly ConcurrentDictionary<string, User> _users = new();
+        private readonly IDatabase _db;
 
-        public Task<bool> RegisterAsync(string login, string password)
+        public UserService(IConnectionMultiplexer redis)
         {
-            if (_users.Values.Any(u => u.Login.Equals(login, StringComparison.OrdinalIgnoreCase)))
+            _db = redis.GetDatabase();
+        }
+
+        public async Task<bool> RegisterAsync(string login, string password)
+        {
+            var userId = await _db.StringGetAsync($"user:login:{login.ToLower()}");
+            if (!userId.IsNullOrEmpty)
             {
-                return Task.FromResult(false);
+                return false;
             }
 
+
+            var id = Guid.NewGuid().ToString();
             var salt = GenerateSalt();
             var hash = HashPassword(password, salt);
 
-            var user = new User
+            await _db.HashSetAsync($"user:{id}", new HashEntry[]
             {
-                Login = login,
-                PasswordHash = hash,
+                new HashEntry("login", login),
+                new HashEntry("passwordHash", hash),
+                new HashEntry("salt", salt)
+            });
+
+            await _db.StringSetAsync($"user:login:{login.ToLower()}", id);
+
+            return true;
+
+        }
+
+        public async Task<User?> AuthenticateAsync(string login, string password)
+        {
+            var userId = await _db.StringGetAsync($"user:login:{login.ToLower()}");
+            if (userId.IsNullOrEmpty) return null;
+
+            var values = await _db.HashGetAllAsync($"user:{userId}");
+            if (values.Length == 0) return null;
+
+            var dict = values.ToDictionary(x => x.Name.ToString(), x => x.Value.ToString());
+
+            if (!dict.TryGetValue("passwordHash", out var storedHash) ||
+                !dict.TryGetValue("salt", out var salt))
+                return null;
+
+            if (HashPassword(password, salt) != storedHash) return null;
+
+            return new User
+            {
+                Id = userId,
+                Login = dict["login"],
+                PasswordHash = storedHash,
                 Salt = salt
             };
-
-            _users.TryAdd(user.Id, user);
-            return Task.FromResult(true);
         }
 
-        public Task<User?> AuthenticateAsync(string login, string password)
+        public async Task<User?> GetByIdAsync(string userId)
         {
-            var user = _users.Values.FirstOrDefault(u =>
-                u.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
+            var values = await _db.HashGetAllAsync($"user:{userId}");
+            if (values.Length == 0) return null;
 
-            if (user == null) return Task.FromResult<User?>(null);
-
-            var hash = HashPassword(password, user.Salt);
-            if (hash != user.PasswordHash) return Task.FromResult<User?>(null);
-
-            return Task.FromResult<User?>(user);
-        }
-
-        public Task<User?> GetByIdAsync(string userId)
-        {
-            _users.TryGetValue(userId, out var user);
-            return Task.FromResult(user);
+            var dict = values.ToDictionary(x => x.Name.ToString(), x => x.Value.ToString());
+            return new User
+            {
+                Id = userId,
+                Login = dict["login"],
+                PasswordHash = dict["passwordHash"],
+                Salt = dict["salt"]
+            };
         }
 
         private static string GenerateSalt()

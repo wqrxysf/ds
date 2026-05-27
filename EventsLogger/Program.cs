@@ -5,7 +5,15 @@ using RabbitMQ.Client.Events;
 
 Console.WriteLine("Запущен EventsLogger\n");
 
-var factory = new ConnectionFactory { HostName = "localhost" };
+var rabbitUsername = Environment.GetEnvironmentVariable("RabbitMQ__Username");
+var rabbitPassword = Environment.GetEnvironmentVariable("RabbitMQ__Password");
+
+var factory = new ConnectionFactory
+{
+    HostName = "localhost",
+    UserName = rabbitUsername,
+    Password = rabbitPassword,
+};
 var connection = factory.CreateConnection();
 var channel = connection.CreateModel();
 

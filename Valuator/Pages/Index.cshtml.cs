@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using StackExchange.Redis;
 using System.Security.Claims;
@@ -13,10 +14,9 @@ public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
     private readonly IDatabase _mainDb;
-
     private readonly ConnectionMultiplexerFactory _shardFactory;
-
     private readonly IUserService _userService;
+    private readonly IOptions<RabbitMQSettings> _rabbitSettings;
 
     public string ServerPort { get; set; } = "";
 
@@ -28,7 +28,7 @@ public class IndexModel : PageModel
         { "UAE", "ASIA" },
         { "India", "ASIA" }
     };
-    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer mainDb, ConnectionMultiplexerFactory shardFactory, IUserService userService)
+    public IndexModel(ILogger<IndexModel> logger, IConnectionMultiplexer mainDb, ConnectionMultiplexerFactory shardFactory, IUserService userService, IOptions<RabbitMQSettings> rabbitSettings)
     {
         _logger = logger;
         _mainDb = mainDb.GetDatabase();
@@ -36,6 +36,8 @@ public class IndexModel : PageModel
         _shardFactory = shardFactory;
 
         _userService = userService;
+
+        _rabbitSettings = rabbitSettings;
     }
 
     public void OnGet()
@@ -90,7 +92,12 @@ public class IndexModel : PageModel
 
     private async Task PublishRankTask(string id, string text, string region)
     {
-        var factory = new ConnectionFactory { HostName = "localhost" };
+        var factory = new ConnectionFactory
+        {
+            HostName = _rabbitSettings.Value.Host,
+            UserName = _rabbitSettings.Value.Username,
+            Password = _rabbitSettings.Value.Password
+        };
         await using var connection = await factory.CreateConnectionAsync();
         await using var channel = await connection.CreateChannelAsync();
 
@@ -121,7 +128,12 @@ public class IndexModel : PageModel
 
     private async Task PublishSimilarityCalculatedEvent(string id, double similarity)
     {
-        var factory = new ConnectionFactory { HostName = "localhost" };
+        var factory = new ConnectionFactory
+        {
+            HostName = _rabbitSettings.Value.Host,
+            UserName = _rabbitSettings.Value.Username,
+            Password = _rabbitSettings.Value.Password
+        };
         await using var connection = await factory.CreateConnectionAsync();
         await using var channel = await connection.CreateChannelAsync();
 

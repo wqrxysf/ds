@@ -40,7 +40,6 @@ public class SummaryModel : PageModel
         if (string.IsNullOrEmpty(currentUserId))
             return BadRequest("Пользователь не определен");
 
-
         try
         {
             using var shardConnection = await _shardFactory.GetShardConnectionByTaskIdAsync(id, _mainDb, _logger);

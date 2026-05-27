@@ -1,65 +1,66 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.SignalR;
-using StackExchange.Redis;
-using Valuator.Hubs;
-using Valuator.Services;
+    using Microsoft.AspNetCore.Authentication.Cookies;
+    using Microsoft.AspNetCore.SignalR;
+    using StackExchange.Redis;
+    using Valuator.Hubs;
+    using Valuator.Services;
 
-namespace Valuator;
+    namespace Valuator;
 
-public class Program
-{
-    public static void Main(string[] args)
+    public class Program
     {
-        var builder = WebApplication.CreateBuilder(args);
-
-        builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
-        
-        builder.Services.AddSingleton<ConnectionMultiplexerFactory>();
-
-        builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+        public static void Main(string[] args)
         {
-            var factory = sp.GetRequiredService<ConnectionMultiplexerFactory>();
-            return factory.GetConnection("MAIN");
-        });
+            var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddSingleton<IUserService, UserService>();
+            builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
+            builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQ"));
 
-        builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie(options =>
+            builder.Services.AddSingleton<ConnectionMultiplexerFactory>();
+
+            builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
-                options.LoginPath = "/Account/Login";
-                options.LogoutPath = "/Account/Logout";
-                options.ExpireTimeSpan = TimeSpan.FromHours(2);
-                options.Cookie.HttpOnly = true;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                var factory = sp.GetRequiredService<ConnectionMultiplexerFactory>();
+                return factory.GetConnection("MAIN");
             });
 
-        builder.Services.AddAuthorization();
+            builder.Services.AddSingleton<IUserService, UserService>();
 
-        builder.Services.AddRazorPages();
+            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.LoginPath = "/Account/Login";
+                    options.LogoutPath = "/Account/Logout";
+                    options.ExpireTimeSpan = TimeSpan.FromHours(2);
+                    options.Cookie.HttpOnly = true;
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                });
 
-        builder.Services.AddSignalR();
+            builder.Services.AddAuthorization();
 
-        builder.Services.AddHostedService<RankUpdateService>();
+            builder.Services.AddRazorPages();
 
-        var app = builder.Build();
+            builder.Services.AddSignalR();
 
-        if (!app.Environment.IsDevelopment())
-        {
-            app.UseExceptionHandler("/Error");
+            builder.Services.AddHostedService<RankUpdateService>();
+
+            var app = builder.Build();
+
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseExceptionHandler("/Error");
+            }
+            app.UseStaticFiles();
+
+            app.UseRouting();
+
+            app.UseAuthentication();
+
+            app.UseAuthorization();
+
+            app.MapRazorPages();
+
+            app.MapHub<RankHub>("/rankHub");
+
+            app.Run();
         }
-        app.UseStaticFiles();
-
-        app.UseRouting();
-
-        app.UseAuthentication();
-
-        app.UseAuthorization();
-
-        app.MapRazorPages();
-
-        app.MapHub<RankHub>("/rankHub");
-
-        app.Run();
     }
-}
